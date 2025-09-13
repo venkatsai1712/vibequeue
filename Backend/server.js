@@ -1,2 +1,2 @@
 console.log("Server is running...");
-console.log("Listening on port 5000");
+console.log("Listening on port 3000");
