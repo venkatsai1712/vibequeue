@@ -6,6 +6,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import MongoStore from "connect-mongo";
+import Host from "./Schema/Host.js";
 
 const app = express();
 dotenv.config();
@@ -34,7 +35,7 @@ app.use(
     cookie: { secure: false },
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
-      collectionName: "Sessions",
+      collectionName: "sessions",
     }),
   })
 );
@@ -50,7 +51,28 @@ passport.use(
       callbackURL: "http://localhost:3000/auth/google/callback",
     },
     (accessToken, refreshToken, profile, done) => {
-      done(null, profile);
+      Host.findOne({ email: profile.emails[0].value })
+        .then((currentHost) => {
+          if (currentHost) {
+            return done(null, currentHost);
+          } else {
+            new Host({
+              name: profile.displayName,
+              email: profile.emails[0].value,
+            })
+              .save()
+              .then((newHost) => {
+                return done(null, newHost);
+              })
+              .catch((err) => {
+                return done(err, null);
+              });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          return done(err, null);
+        });
     }
   )
 );
@@ -60,7 +82,7 @@ passport.serializeUser((user, done) => {
   done(null, user);
 });
 passport.deserializeUser((user, done) => {
-  console.log("Deserialized User:", user);
+  // console.log("Deserialized User:", user);
   done(null, user);
 });
 
@@ -79,10 +101,8 @@ app.get(
 
 app.get("/", (req, res) => {
   if (req.isAuthenticated()) {
-    console.log(req.user);
     res.send({ user: req.user });
   } else {
-    console.log("No user authenticated");
     res.status(401).send({ user: null });
   }
 });

@@ -23,9 +23,12 @@ function LoginPage() {
           Host
           <FcGoogle />
         </a>
-        <div className="btn btn-outline-light w-50 d-flex justify-content-between align-items-center">
+        <a
+          className="btn btn-outline-light w-50 d-flex justify-content-between align-items-center"
+          href="/User"
+        >
           User
-        </div>
+        </a>
       </div>
     </div>
   );
