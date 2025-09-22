@@ -7,12 +7,13 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import MongoStore from "connect-mongo";
 import Host from "./Schema/Host.js";
+import Playlist_Session from "./Schema/Playlist_Session.js";
 
 const app = express();
 dotenv.config();
 
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MongoDB_URI)
   .then(() => {
     console.log("Database Connected");
   })
@@ -34,7 +35,7 @@ app.use(
     saveUninitialized: false,
     cookie: { secure: false },
     store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI,
+      mongoUrl: process.env.MongoDB_URI,
       collectionName: "sessions",
     }),
   })
@@ -59,6 +60,7 @@ passport.use(
             new Host({
               name: profile.displayName,
               email: profile.emails[0].value,
+              playlist_session_id: null,
             })
               .save()
               .then((newHost) => {
@@ -99,222 +101,103 @@ app.get(
   })
 );
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   if (req.isAuthenticated()) {
-    res.send({ user: req.user });
+    try {
+      const r1 = await Host.find({
+        _id: req.user._id,
+        playlist_session_id: { $ne: null },
+      });
+      if (r1.length !== 0) {
+        const r2 = await Host.findById(req.user._id).populate(
+          "playlist_session_id"
+        );
+        res.send({ user: req.user, session: r2 });
+      } else {
+        res.send({ user: req.user, session: null });
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({ message: "Error Fetching Session", error: err });
+    }
   } else {
     res.status(401).send({ user: null });
+  }
+});
+
+app.post("/save-playlist-name", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const { playlistName } = req.body;
+    try {
+      const r1 = await Playlist_Session({
+        name: playlistName,
+        host_id: req.user._id,
+      }).save();
+      try {
+        const r2 = await Host.findByIdAndUpdate(req.user._id, {
+          playlist_session_id: r1._id,
+        });
+        res
+          .status(200)
+          .send({ message: "Playlist Saved", data: r1 + " " + r2 });
+      } catch (err) {
+        console.log(err);
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({ message: "Error Saving Playlist", error: err });
+    }
+  }
+});
+
+app.post("/save-playlist", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const { playlist } = req.body;
+    try {
+      const r1 = await Host.findById(req.user._id);
+      const r2 = await Playlist_Session.findByIdAndUpdate(
+        r1.playlist_session_id,
+        {
+          $push: { songs_queue: playlist },
+        }
+      );
+      res.status(200).send({ message: "Playlist Songs Saved", data: r2 });
+    } catch (err) {
+      console.log(err);
+      res
+        .status(500)
+        .send({ message: "Error Saving Playlist Songs", error: err });
+    }
+  }
+});
+
+app.get("/playlist", async (req, res) => {
+  if (req.isAuthenticated()) {
+    try {
+      const r1 = await Host.findById(req.user._id).populate(
+        "playlist_session_id"
+      );
+      res.status(200).send({ data: r1 });
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({ message: "Error Fetching Playlist", error: err });
+    }
+  } else {
+    res.status(401).send({ message: "Unauthorized" });
+  }
+});
+
+app.get("/user/playlist/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const r1 = await Playlist_Session.find({ session_id: id });
+    res.status(200).send({ data: r1 });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Error Fetching Playlist", error: err });
   }
 });
 
 app.listen(3000, () => {
   console.log("Server Running on Port 3000");
 });
-
-// import express from "express";
-// import cors from "cors";
-// import dotenv from "dotenv";
-// import { GoogleGenAI } from "@google/genai";
-// import session from "express-session";
-// import passport from "passport";
-// import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-// import mongoose from "mongoose";
-// import MongoStore from "connect-mongo";
-// import { User } from "./models/User.js";
-// import { Goal } from "./models/Goal.js";
-
-// const app = express();
-
-// //Load environment variables from .env file
-// dotenv.config();
-
-// //Database Connection
-// mongoose
-//   .connect(process.env.MONGODB_URI)
-//   .then(() => {
-//     console.log("Database Connnected Successfully");
-//   })
-//   .catch((err) => {
-//     console.log("Database Connection Failed");
-//   });
-
-// //Allow resources to be shared between different origins from Frontend to Backend of different URLs
-// app.use(
-//   cors({
-//     origin: "http://localhost:5173",
-//     credentials: true,
-//   })
-// );
-
-// //Parses JSON object to the request body
-// app.use(express.json());
-
-// //If there is no session then it will create one
-// app.use(
-//   session({
-//     secret: process.env.SESSION_SECRET, //Uses the secret key to sign the session ID cookie
-//     resave: false,
-//     saveUninitialized: false,
-//     cookie: { secure: false },
-//     store: MongoStore.create({
-//       mongoUrl: process.env.MONGODB_URI,
-//       collectionName: "sessions",
-//     }),
-//   })
-// );
-
-// //Initialise passport
-// app.use(passport.initialize());
-
-// //Let us access the session using request object
-// app.use(passport.session());
-
-// passport.use(
-//   new GoogleStrategy(
-//     {
-//       clientID: process.env.GOOGLE_CLIENT_ID,
-//       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-//       callbackURL: "http://localhost:3000/auth/google/callback",
-//     },
-//     (accessToken, refreshToken, profile, done) => {
-//       User.findOne({ googleId: profile.id })
-//         .then((existingUser) => {
-//           if (existingUser) {
-//             return done(null, existingUser);
-//           } else {
-//             const userData = {
-//               googleId: profile.id,
-//               displayName: profile.displayName,
-//               email: profile.emails[0].value,
-//               photo: profile.photos[0].value,
-//             };
-//             new User(userData)
-//               .save()
-//               .then((newUser) => {
-//                 console.log("New User Created");
-//                 return done(null, newUser);
-//               })
-//               .catch((err) => {
-//                 console.log("New User Not Created");
-//                 return done(err, null);
-//               });
-//           }
-//         })
-//         .catch((err) => done(err, null));
-//     }
-//   )
-// );
-
-// //Store user data in session
-// passport.serializeUser((user, done) => {
-//   done(null, user._id);
-// });
-
-// //Fetch the user data from session
-// passport.deserializeUser((user, done) => {
-//   User.findById(user)
-//     .then((user) => {
-//       done(null, user);
-//     })
-//     .catch((err) => {
-//       done(err, null);
-//     });
-// });
-
-// app.get("/", async (req, res) => {
-//   if (req.isAuthenticated()) {
-//     try {
-//       const userData = await Goal.findOne({ user: req.user._id });
-//       res.send({ user: req.user, goal: userData });
-//     } catch (err) {
-//       console.log(err.message);
-//     }
-//   } else {
-//     res.send({ user: null, goal: null });
-//   }
-// });
-
-// app.get(
-//   "/auth/google",
-//   passport.authenticate("google", { scope: ["profile", "email"] })
-// );
-
-// app.get(
-//   "/auth/google/callback",
-//   passport.authenticate("google", {
-//     successRedirect: "http://localhost:5173/",
-//     failureRedirect: "http://localhost:5173/",
-//   })
-// );
-
-// app.get("/logout", (req, res) => {
-//   req.logout(() => {
-//     res.redirect("http://localhost:5173/");
-//   });
-// });
-
-// app.post("/storeTasks", async (req, res) => {
-//   try {
-//     const response = await new Goal({
-//       user: req.user._id,
-//       title: req.body.goal.title,
-//       duration: req.body.goal.duration,
-//       tasks: Array.from(req.body.goal.tasks, (task, ind) => ({
-//         day: ind + 1,
-//         task: task,
-//         completed: false,
-//       })),
-//       startDate: new Date(),
-//       endDate: new Date().setDate(
-//         new Date().getDate() + req.body.goal.duration
-//       ),
-//       streak: 0,
-//       tasksCompleted: 0,
-//     }).save();
-//   } catch (err) {
-//     console.log(err.message);
-//   }
-// });
-
-// app.post("/saveCheckIn", async (req, res) => {
-//   try {
-//     const response = await Goal.findOne({ user: req.user._id });
-//     response.tasks[req.body.day - 1].completed = req.body.task;
-//     response.tasksCompleted = req.body.day;
-//     if (req.body.task) {
-//       response.streak[req.body.day - 1] = 1;
-//     } else {
-//       response.streak[req.body.day - 1] = 0;
-//     }
-//     response.tasks[req.body.day - 1].timeSpent = req.body.timeSpent;
-//     if (!response.tasks[req.body.day - 1].changed) {
-//       await response.save();
-//       res.send({ message: "Check-In saved successfully" });
-//     } else {
-//       res.send({ message: "Check-In already saved for today" });
-//     }
-//   } catch (err) {
-//     console.log(err.message);
-//   }
-// });
-
-// app.post("/gemini", async (req, res) => {
-//   const message = req.body.message;
-//   try {
-//     const ai = new GoogleGenAI({
-//       apiKey: process.env.GEMINI_API_KEY,
-//     });
-//     const response = await ai.models.generateContent({
-//       model: "gemini-2.5-flash",
-//       contents: message,
-//     });
-//     res.send({ apireply: response.text });
-//   } catch (err) {
-//     console.log(err.message);
-//     res.send({ message: "api error" });
-//   }
-// });
-
-// app.listen(3000, () => {
-//   console.log("Server is running on port 3000");
-// });
