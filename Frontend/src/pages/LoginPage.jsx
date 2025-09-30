@@ -1,5 +1,6 @@
 import "./LoginPage.css";
 import { FcGoogle } from "react-icons/fc";
+import { Link } from "react-router-dom";
 
 function LoginPage() {
   return (
@@ -23,12 +24,12 @@ function LoginPage() {
           Host
           <FcGoogle />
         </a>
-        <a
+        <Link
           className="btn btn-outline-light w-50 d-flex justify-content-between align-items-center"
-          href="/User"
+          to="/User"
         >
           User
-        </a>
+        </Link>
       </div>
     </div>
   );

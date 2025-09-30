@@ -137,7 +137,7 @@ function HostHomePage() {
           </button>
         </div>
         <Link to="/Playlist">
-          <button
+          <div
             // ref={clickPlaylistButton}
             className="btn border border-0"
             // data-bs-toggle="modal"
@@ -147,7 +147,7 @@ function HostHomePage() {
               className="bi bi-music-note-list ms-3"
               style={{ fontSize: "2rem" }}
             ></i>
-          </button>
+          </div>
         </Link>
       </div>
       <div className="modal" id="mymodal">
@@ -199,7 +199,7 @@ function HostHomePage() {
                         ? "bi bi-check-circle ms-2"
                         : "bi bi-plus-circle ms-2"
                     }
-                    style={{ fontSize: "2.5rem" }}
+                    style={{ fontSize: "1.5rem" }}
                     onClick={(e) => {
                       addSongsToPlaylist(song);
                     }}

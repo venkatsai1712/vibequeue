@@ -8,8 +8,15 @@ import mongoose from "mongoose";
 import MongoStore from "connect-mongo";
 import Host from "./Schema/Host.js";
 import Playlist_Session from "./Schema/Playlist_Session.js";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 const app = express();
+const httpServer = createServer(app);
+httpServer.listen(3000, () => {
+  console.log("Server Running on Port 3000");
+});
+
 dotenv.config();
 
 mongoose
@@ -27,6 +34,22 @@ app.use(
     credentials: true,
   })
 );
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("user connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("user disconnected:", socket.id);
+  });
+});
+
 app.use(express.json());
 app.use(
   session({
@@ -161,6 +184,45 @@ app.post("/save-playlist", async (req, res) => {
           $push: { songs_queue: playlist },
         }
       );
+      io.emit("playlist-updated-added", playlist);
+      res.status(200).send({ message: "Playlist Songs Saved", data: r2 });
+    } catch (err) {
+      console.log(err);
+      res
+        .status(500)
+        .send({ message: "Error Saving Playlist Songs", error: err });
+    }
+  }
+});
+
+app.post("/user-save-playlist", async (req, res) => {
+  const { playlist, sessionId } = req.body;
+  try {
+    const r2 = await Playlist_Session.find({ session_id: sessionId });
+    r2[0].songs_queue.push(...playlist);
+    await r2[0].save();
+    io.emit("playlist-updated-added", playlist);
+    res.status(200).send({ message: "Playlist Songs Saved", data: r2 });
+  } catch (err) {
+    console.log(err);
+    res
+      .status(500)
+      .send({ message: "Error Saving Playlist Songs", error: err });
+  }
+});
+
+app.post("/edit-playlist", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const { playlist } = req.body;
+    try {
+      const r1 = await Host.findById(req.user._id);
+      const r2 = await Playlist_Session.findByIdAndUpdate(
+        r1.playlist_session_id,
+        {
+          $pullAll: { songs_queue: playlist },
+        }
+      );
+      io.emit("playlist-updated-deleted", playlist);
       res.status(200).send({ message: "Playlist Songs Saved", data: r2 });
     } catch (err) {
       console.log(err);
@@ -196,8 +258,4 @@ app.get("/user/playlist/:id", async (req, res) => {
     console.log(err);
     res.status(500).send({ message: "Error Fetching Playlist", error: err });
   }
-});
-
-app.listen(3000, () => {
-  console.log("Server Running on Port 3000");
 });

@@ -4,9 +4,11 @@ import HostHomePage from "./pages/HostHomePage";
 import axios from "axios";
 import { createContext, useState } from "react";
 import { useEffect } from "react";
+import SongPlayer from "./pages/SongPlayer";
 import Playlist from "./pages/PlaylistPage";
 
 export const AppContext = createContext();
+
 function App() {
   const [user, setUser] = useState({});
   const [session, setSession] = useState({});
@@ -33,6 +35,7 @@ function App() {
         <Route path="/" element={<HostHomePage />} />
         <Route path="/User" element={<UserHomePage />} />
         <Route path="/Playlist" element={<Playlist />} />
+        <Route path="/Song/:id" element={<SongPlayer />} />
       </Routes>
     </AppContext.Provider>
   );

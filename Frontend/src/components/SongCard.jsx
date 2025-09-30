@@ -1,6 +1,11 @@
+import { Link } from "react-router-dom";
+
 function SongCard({ song }) {
   return (
-    <div className="card w-75 m-2 p-1 bg-black border border-white">
+    <Link
+      className="card w-75 m-2 p-1 bg-black border border-white"
+      to={`/Song/${song.data.id}`}
+    >
       <div className="d-flex justify-content-between p-1">
         <div className="">
           <h5 className="card-title">
@@ -22,7 +27,7 @@ function SongCard({ song }) {
           />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
