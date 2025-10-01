@@ -210,9 +210,13 @@ function UserHomePage() {
                     return (
                       <div
                         key={song.data.id}
-                        className="d-flex align-items-center justify-content-center"
+                        className="d-flex align-items-center justify-content-center gap-1"
                       >
                         <SongCard song={song} />
+                        <div className="d-flex flex-column gap-2">
+                          <p className="bi bi-hand-thumbs-up m-0"> 5</p>
+                          <p className="bi bi-hand-thumbs-down m-0"> 1</p>
+                        </div>
                       </div>
                     );
                   })

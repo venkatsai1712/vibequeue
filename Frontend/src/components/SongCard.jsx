@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
+import "../pages/PlaylistPage.css";
 
-function SongCard({ song }) {
+function SongCard({ song, effect }) {
   return (
     <Link
       className="card w-75 m-2 p-1 bg-black border border-white"
@@ -20,11 +21,30 @@ function SongCard({ song }) {
           </p>
         </div>
         <div className="p-1">
-          <img
-            src={song.data.albumOfTrack.coverArt.sources[0].url}
-            className=" rounded"
-            style={{ maxHeight: "85px" }}
-          />
+          <div>
+            <img
+              src={song.data.albumOfTrack.coverArt.sources[0].url}
+              className={`rounded`}
+              style={{ maxHeight: "85px" }}
+            />
+            {effect !== "" ? (
+              <i
+                className={`${effect}`}
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "85%",
+                  transform: "translate(-50%, -50%)",
+                  fontSize: "2rem",
+                  color: "white",
+                  pointerEvents: "none",
+                  width: "6rem",
+                  height: "6rem",
+                  padding: "1.5rem",
+                }}
+              ></i>
+            ) : null}
+          </div>
         </div>
       </div>
     </Link>

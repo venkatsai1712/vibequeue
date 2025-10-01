@@ -211,28 +211,6 @@ app.post("/user-save-playlist", async (req, res) => {
   }
 });
 
-app.post("/edit-playlist", async (req, res) => {
-  if (req.isAuthenticated()) {
-    const { playlist } = req.body;
-    try {
-      const r1 = await Host.findById(req.user._id);
-      const r2 = await Playlist_Session.findByIdAndUpdate(
-        r1.playlist_session_id,
-        {
-          $pullAll: { songs_queue: playlist },
-        }
-      );
-      io.emit("playlist-updated-deleted", playlist);
-      res.status(200).send({ message: "Playlist Songs Saved", data: r2 });
-    } catch (err) {
-      console.log(err);
-      res
-        .status(500)
-        .send({ message: "Error Saving Playlist Songs", error: err });
-    }
-  }
-});
-
 app.get("/playlist", async (req, res) => {
   if (req.isAuthenticated()) {
     try {
@@ -257,5 +235,27 @@ app.get("/user/playlist/:id", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Error Fetching Playlist", error: err });
+  }
+});
+
+app.post("/edit-playlist", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const { playlist } = req.body;
+    try {
+      const r1 = await Host.findById(req.user._id);
+      const r2 = await Playlist_Session.findByIdAndUpdate(
+        r1.playlist_session_id,
+        {
+          $pullAll: { songs_queue: playlist },
+        }
+      );
+      io.emit("playlist-updated-deleted", playlist);
+      res.status(200).send({ message: "Playlist Songs Saved", data: r2 });
+    } catch (err) {
+      console.log(err);
+      res
+        .status(500)
+        .send({ message: "Error Saving Playlist Songs", error: err });
+    }
   }
 });

@@ -15,7 +15,15 @@ const model = new mongoose.Schema(
       unique: true,
       default: () => nanoid(8),
     },
-    songs_queue: [{ id: String, data: Object }],
+    songs_queue: [
+      {
+        id: String,
+        data: Object,
+        upvote: { type: Number, default: 0 },
+        downvote: { type: Number, default: 0 },
+        playing: { type: Boolean, default: false },
+      },
+    ],
   },
   { timestamps: true }
 );
