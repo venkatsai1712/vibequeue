@@ -6,10 +6,10 @@ import axios from "axios";
 function SongPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [songName, setSongName] = useState("");
-  const [songMovie, setSongMovie] = useState("");
-  const [songUrl, setSongUrl] = useState("");
-  const [songImage, setSongImage] = useState("");
+  const [songName, setSongName] = useState(null);
+  const [songMovie, setSongMovie] = useState(null);
+  const [songUrl, setSongUrl] = useState(null);
+  const [songImage, setSongImage] = useState(null);
   const audioRef = useRef(null);
   const { id } = useParams();
 

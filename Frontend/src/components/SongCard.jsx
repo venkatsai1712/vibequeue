@@ -33,14 +33,11 @@ function SongCard({ song, effect }) {
                 style={{
                   position: "absolute",
                   top: "50%",
-                  left: "85%",
+                  left: "50%",
                   transform: "translate(-50%, -50%)",
-                  fontSize: "2rem",
+                  fontSize: "1.5rem",
                   color: "white",
                   pointerEvents: "none",
-                  width: "6rem",
-                  height: "6rem",
-                  padding: "1.5rem",
                 }}
               ></i>
             ) : null}

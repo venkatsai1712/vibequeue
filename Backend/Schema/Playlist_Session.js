@@ -19,11 +19,11 @@ const model = new mongoose.Schema(
       {
         id: String,
         data: Object,
-        upvote: { type: Number, default: 0 },
-        downvote: { type: Number, default: 0 },
-        playing: { type: Boolean, default: false },
+        upvote: [{type: String}],
+        downvote: [{type: String}],
       },
     ],
+    current_playing: { type: Number, default: -1 },
   },
   { timestamps: true }
 );

@@ -43,6 +43,7 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
+  socket.emit("socket-id", socket.id);
   console.log("user connected:", socket.id);
 
   socket.on("disconnect", () => {
@@ -257,5 +258,51 @@ app.post("/edit-playlist", async (req, res) => {
         .status(500)
         .send({ message: "Error Saving Playlist Songs", error: err });
     }
+  }
+});
+
+app.post("/current-playing/:index", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const { index } = req.params;
+    try {
+      const r1 = await Playlist_Session.find({
+        session_id: req.body.session_id,
+      });
+      r1[0].current_playing = index;
+      await r1[0].save();
+      io.emit("current-playing-updated", index);
+      res.status(200).send({ message: "Current Playing Updated", data: r1 });
+    } catch (err) {
+      console.log(err);
+      res
+        .status(500)
+        .send({ message: "Error Updating Current Playing", error: err });
+    }
+  } else {
+    res.status(401).send({ message: "Unauthorized" });
+  }
+});
+
+app.post("/upvote/:songId", async (req, res) => {
+  const { songId } = req.params;
+  const { sessionId, socketId } = req.body;
+  try {
+    const r1 = await Playlist_Session.find({ session_id: sessionId });
+    const song = r1[0].songs_queue.find((s) => s.id === songId);
+    if (!song.upvote.includes(socketId)) {
+      song.upvote.push(socketId);
+      const arr = r1[0].songs_queue.slice(r1[0].current_playing+1);
+      arr.sort((a, b) => b.upvote.length - a.upvote.length);
+      r1[0].songs_queue.splice(r1[0].current_playing+1, arr.length, ...arr);
+      await r1[0].save();
+      io.emit("song-upvoted", { songId,song });
+      io.emit("playlist-updated", r1[0].songs_queue);
+      res.status(200).send({ message: "Song Upvoted", data: song });
+    } else {
+      res.status(400).send({ message: "Song Already Upvoted" });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Error Upvoting Song", error: err });
   }
 });

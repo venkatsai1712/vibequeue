@@ -39,6 +39,11 @@ function Playlist() {
       setPlayListSongs((playListSongs) => [...playListSongs, ...songs]);
     });
 
+    socket.on("playlist-updated", (songs) => {
+      console.log(songs);
+      setPlayListSongs([...songs]);
+    });
+
     socket.on("playlist-updated-deleted", (songs) => {
       setPlayListSongs(
         playListSongs.filter((psong) => {
@@ -48,8 +53,18 @@ function Playlist() {
       );
     });
 
+    socket.on("song-upvoted", ({ song, songId }) => {
+      setPlayListSongs((prevSongs) =>
+        prevSongs.map((s) =>
+          s.id == songId ? { ...s, upvote: song.upvote } : s
+        )
+      );
+    });
+
     return () => {
       socket.off("playlist-updated-added");
+      socket.off("playlist-updated");
+      socket.off("song-upvoted");
       socket.off("playlist-updated-deleted");
     };
   }, []);
@@ -81,6 +96,21 @@ function Playlist() {
     }
   }
 
+  async function updateCurrentPlaying(index) {
+    try {
+      const res = await axios.post(
+        `http://localhost:3000/current-playing/${index}`,
+        {
+          session_id: sessionId,
+        },
+        { withCredentials: true }
+      );
+      console.log(res);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   async function playSongs(index) {
     if (index >= playListSongs.length) return;
     const options = {
@@ -98,6 +128,7 @@ function Playlist() {
       const response = await axios.request(options);
       audioRef.current.src = response.data.tracks[0].preview_url;
       await audioRef.current.play();
+      updateCurrentPlaying(index);
       if (playButton.current) {
         playButton.current.className = "bi bi-pause-circle";
       }
@@ -131,7 +162,7 @@ function Playlist() {
           return nextIndex;
         } else {
           playButton.current.className = "bi bi-play-circle";
-          return 0;
+          return -1;
         }
       });
     };
@@ -215,13 +246,24 @@ function Playlist() {
                     <SongCard song={song} effect="" />
                   )}
                   <div className="d-flex flex-column gap-2">
-                    <p className="bi bi-hand-thumbs-up m-0"> 5</p>
-                    <p className="bi bi-hand-thumbs-down m-0"> 1</p>
+                    <p
+                      className="bi bi-hand-thumbs-up m-0"
+                      onClick={() => {
+                        upVote(song.data.id);
+                      }}
+                    >
+                      {" "}
+                      {song.upvote.length > 0 ? song.upvote.length : ""}
+                    </p>
+                    <p className="bi bi-hand-thumbs-down m-0">
+                      {" "}
+                      {song.downvote.length > 0 ? song.downvote.length : ""}
+                    </p>
                     <i
                       className={
                         deletedSongs.find((s) => s.id === song.data.id)
-                          ? "bi bi-trash-fill ms-2"
-                          : "bi bi-trash ms-2"
+                          ? "bi bi-trash-fill ms-0"
+                          : "bi bi-trash ms-0"
                       }
                       onClick={(e) => {
                         addSongsToPlaylist(song);

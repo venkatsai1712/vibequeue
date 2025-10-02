@@ -3,6 +3,7 @@ import axios from "axios";
 import SongCard from "../components/SongCard";
 import { useEffect } from "react";
 import socket from "../sockets/socket";
+import "./PlaylistPage.css";
 
 function UserHomePage() {
   const [sessionId, setSessionId] = useState("");
@@ -12,10 +13,28 @@ function UserHomePage() {
   const [songsList, setSongsList] = useState([]);
   const [addSongs, setAddSongs] = useState([]);
   const [searchFocus, setSearchFocus] = useState(false);
+  const [socketId, setSocketId] = useState("");
+  const [currentSongIndex, setCurrentSongIndex] = useState(-1);
 
   useEffect(() => {
     socket.on("playlist-updated-added", (songs) => {
       setPlayListSongs((playListSongs) => [...playListSongs, ...songs]);
+    });
+
+    socket.on("playlist-updated", (songs) => {
+      setPlayListSongs([...songs]);
+    });
+
+    socket.on("socket-id", (id) => {
+      setSocketId(id);
+    });
+
+    socket.on("song-upvoted", ({ song, songId }) => {
+      setPlayListSongs((prevSongs) =>
+        prevSongs.map((s) =>
+          s.id == songId ? { ...s, upvote: song.upvote } : s
+        )
+      );
     });
 
     socket.on("playlist-updated-deleted", (songs) => {
@@ -27,11 +46,35 @@ function UserHomePage() {
       );
     });
 
+    socket.on("current-playing-updated", (index) => {
+      setCurrentSongIndex(index);
+    });
+
     return () => {
       socket.off("playlist-updated-added");
       socket.off("playlist-updated-deleted");
+      socket.off("current-playing-updated");
+      socket.off("socket-id");
+      socket.off("song-upvoted");
+      socket.off("playlist-updated");
     };
   }, []);
+
+  async function upVote(id) {
+    try {
+      const res = await axios.post(
+        `http://localhost:3000/upvote/${id}`,
+        {
+          sessionId: sessionId,
+          socketId: socketId,
+        },
+        { withCredentials: true }
+      );
+      console.log(res);
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
   async function searchSong() {
     if (!searchInput.trim()) return;
@@ -212,10 +255,25 @@ function UserHomePage() {
                         key={song.data.id}
                         className="d-flex align-items-center justify-content-center gap-1"
                       >
-                        <SongCard song={song} />
+                        {index == currentSongIndex ? (
+                          <SongCard song={song} effect="bi bi-soundwave" />
+                        ) : (
+                          <SongCard song={song} effect="" />
+                        )}
                         <div className="d-flex flex-column gap-2">
-                          <p className="bi bi-hand-thumbs-up m-0"> 5</p>
-                          <p className="bi bi-hand-thumbs-down m-0"> 1</p>
+                          <p
+                            className="bi bi-hand-thumbs-up m-0"
+                            onClick={() => {
+                              upVote(song.data.id);
+                            }}
+                          >
+                            {song.upvote.length > 0 ? " "+song.upvote.length : ""}
+                          </p>
+                          <p className="bi bi-hand-thumbs-down m-0">
+                             {song.downvote.length > 0
+                              ? " "+song.downvote.length
+                              : ""}
+                          </p>
                         </div>
                       </div>
                     );
